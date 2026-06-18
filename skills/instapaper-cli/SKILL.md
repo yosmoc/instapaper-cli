@@ -14,7 +14,7 @@ This skill helps you use the `instapaper` CLI tool to interact with the [Instapa
 
 ## Prerequisites
 
-- The `instapaper` binary must be built or available in PATH
+- The `instapaper` binary must be installed and available in PATH. Install it via `cargo install instapaper-cli`, from the [GitHub Releases](https://github.com/yosmoc/instapaper-cli/releases), or build it from source.
 - Environment variables must be set:
   - `INSTAPAPER_OAUTH_CONSUMER_KEY` — OAuth consumer key
   - `INSTAPAPER_OAUTH_CONSUMER_SECRET` — OAuth consumer secret
