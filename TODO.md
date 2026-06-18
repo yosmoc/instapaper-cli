@@ -10,6 +10,7 @@
 - [x] Set up prek pre-commit hooks (secretlint, cargo-fmt, cargo-test, pinact, oxfmt)
 - [x] Set up GitHub Actions CI/CD (test, release, secretlint, oxfmt)
 - [x] Create AGENTS.md, skills/instapaper-cli/SKILL.md, README.md
+- [x] Add crates.io installation instructions to README.md and SKILL.md
 
 ## Commands Implemented (17 total)
 

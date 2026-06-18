@@ -13,6 +13,12 @@ A command-line interface for the [Instapaper API](https://www.instapaper.com/dev
 
 ## Installation
 
+### From crates.io
+
+```bash
+cargo install instapaper-cli
+```
+
 ### From source
 
 ```bash
