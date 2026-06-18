@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
+  },
+  "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "13.0.0",
+    "oxfmt": "0.48.0",
+    "secretlint": "13.0.0"
+  },
+  "packageManager": "pnpm@10.33.2"
+}

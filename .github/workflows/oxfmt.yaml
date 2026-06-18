@@ -1,0 +1,18 @@
+name: Oxfmt
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
+        with:
+          package_json_file: package.json
+      - run: pnpm install --frozen-lockfile
+      - name: oxfmt
+        run: pnpm run fmt:check

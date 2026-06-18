@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive: instapaper-linux-amd64.tar.gz
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            archive: instapaper-linux-arm64.tar.gz
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            archive: instapaper-macos-amd64.tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive: instapaper-macos-arm64.tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: instapaper-windows-amd64.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Rust
+        run: rustup update stable
+      - uses: taiki-e/setup-cross-toolchain-action@129361238c06ff2cc1c4ca5c5d2217af441ffdf6 # v1.40.1
+        with:
+          target: ${{ matrix.target }}
+      - name: Build
+        run: cargo build --release
+      - name: Package binary
+        if: runner.os != 'Windows'
+        run: tar czf ${{ matrix.archive }} -C target/${{ matrix.target }}/release instapaper
+      - name: Package binary
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path target/${{ matrix.target }}/release/instapaper.exe -DestinationPath ${{ matrix.archive }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.archive }}
+          path: ${{ matrix.archive }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --generate-notes \
+            artifacts/instapaper-linux-amd64.tar.gz \
+            artifacts/instapaper-linux-arm64.tar.gz \
+            artifacts/instapaper-macos-amd64.tar.gz \
+            artifacts/instapaper-macos-arm64.tar.gz \
+            artifacts/instapaper-windows-amd64.zip
+
+  publish:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Rust
+        run: rustup update stable
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish

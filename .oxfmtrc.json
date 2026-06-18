@@ -1,0 +1,4 @@
+{
+  "files": ["**/*.{json,yaml,yml,md}"],
+  "exclude": ["target/**", "node_modules/**", "skills/**", "TODO.md"]
+}

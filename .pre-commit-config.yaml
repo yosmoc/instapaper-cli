@@ -1,0 +1,31 @@
+repos:
+  - repo: local
+    hooks:
+      - id: secretlint
+        name: secretlint
+        entry: pnpm exec secretlint
+        language: system
+        types: [text]
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all -- --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: cargo-test
+        name: cargo test
+        entry: cargo test
+        language: system
+        types: [rust]
+        pass_filenames: false
+      - id: pinact
+        name: pinact
+        entry: pinact run
+        language: system
+        types: [yaml]
+        pass_filenames: false
+      - id: oxfmt
+        name: oxfmt
+        entry: pnpm fmt
+        language: system
+        exclude: ^(skills/|TODO\.md)
