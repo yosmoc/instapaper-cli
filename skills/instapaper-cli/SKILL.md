@@ -28,47 +28,47 @@ All commands output JSON by default.
 
 ### Authentication
 
-| Command | Description |
-|---------|-------------|
+| Command                                                | Description                                  |
+| ------------------------------------------------------ | -------------------------------------------- |
 | `instapaper auth --username <email> --password <pass>` | Authenticate via xAuth and save OAuth tokens |
 
 ### Account
 
-| Command | Description |
-|---------|-------------|
+| Command                         | Description                                  |
+| ------------------------------- | -------------------------------------------- |
 | `instapaper verify-credentials` | Verify credentials and get current user info |
 
 ### Bookmarks
 
-| Command | Description |
-|---------|-------------|
-| `instapaper list-bookmarks` | List unread bookmarks (options: `--limit`, `--folder-id`, `--tag`, `--have`, `--highlights`) |
-| `instapaper add-bookmark --url <url>` | Add a new bookmark (options: `--title`, `--description`, `--folder-id`, `--archived`, `--tags`, `--content`) |
-| `instapaper delete-bookmark <id>` | Permanently delete a bookmark |
-| `instapaper star-bookmark <id>` | Star a bookmark |
-| `instapaper unstar-bookmark <id>` | Unstar a bookmark |
-| `instapaper archive-bookmark <id>` | Move bookmark to Archive |
-| `instapaper unarchive-bookmark <id>` | Move bookmark to Unread |
-| `instapaper move-bookmark <id> <folder-id>` | Move bookmark to a folder |
-| `instapaper get-bookmark-text <id>` | Get bookmark's processed text HTML (option: `--instaparser-api-key`) |
-| `instapaper update-read-progress <id> <progress>` | Update reading progress (0.0 to 1.0, option: `--progress-timestamp`) |
+| Command                                           | Description                                                                                                  |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `instapaper list-bookmarks`                       | List unread bookmarks (options: `--limit`, `--folder-id`, `--tag`, `--have`, `--highlights`)                 |
+| `instapaper add-bookmark --url <url>`             | Add a new bookmark (options: `--title`, `--description`, `--folder-id`, `--archived`, `--tags`, `--content`) |
+| `instapaper delete-bookmark <id>`                 | Permanently delete a bookmark                                                                                |
+| `instapaper star-bookmark <id>`                   | Star a bookmark                                                                                              |
+| `instapaper unstar-bookmark <id>`                 | Unstar a bookmark                                                                                            |
+| `instapaper archive-bookmark <id>`                | Move bookmark to Archive                                                                                     |
+| `instapaper unarchive-bookmark <id>`              | Move bookmark to Unread                                                                                      |
+| `instapaper move-bookmark <id> <folder-id>`       | Move bookmark to a folder                                                                                    |
+| `instapaper get-bookmark-text <id>`               | Get bookmark's processed text HTML (option: `--instaparser-api-key`)                                         |
+| `instapaper update-read-progress <id> <progress>` | Update reading progress (0.0 to 1.0, option: `--progress-timestamp`)                                         |
 
 ### Folders
 
-| Command | Description |
-|---------|-------------|
-| `instapaper list-folders` | List user-created folders |
-| `instapaper add-folder <title>` | Create a new folder |
-| `instapaper delete-folder <id>` | Delete a folder |
+| Command                               | Description                                                      |
+| ------------------------------------- | ---------------------------------------------------------------- |
+| `instapaper list-folders`             | List user-created folders                                        |
+| `instapaper add-folder <title>`       | Create a new folder                                              |
+| `instapaper delete-folder <id>`       | Delete a folder                                                  |
 | `instapaper set-folder-order <order>` | Re-order folders (format: `folder_id:position`, comma-separated) |
 
 ### Highlights
 
-| Command | Description |
-|---------|-------------|
-| `instapaper list-highlights <bookmark-id>` | List highlights for a bookmark |
+| Command                                            | Description                                   |
+| -------------------------------------------------- | --------------------------------------------- |
+| `instapaper list-highlights <bookmark-id>`         | List highlights for a bookmark                |
 | `instapaper create-highlight <bookmark-id> <text>` | Create a new highlight (option: `--position`) |
-| `instapaper delete-highlight <id>` | Delete a highlight |
+| `instapaper delete-highlight <id>`                 | Delete a highlight                            |
 
 ## Examples
 
@@ -138,6 +138,7 @@ instapaper create-highlight 12345 "This is an important passage"
 ## Folder IDs
 
 Special folder IDs for `list-bookmarks`:
+
 - `unread` — Unread articles (default)
 - `starred` — Starred articles
 - `archive` — Archived articles
