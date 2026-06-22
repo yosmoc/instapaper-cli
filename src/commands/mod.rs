@@ -8,6 +8,7 @@ pub mod highlights;
 pub const TEST_AUTH_HEADER: &str = "OAuth test";
 
 #[cfg(test)]
+#[must_use]
 pub fn test_token() -> oauth1_request::Token<String, String> {
     oauth1_request::Token::from_parts(
         "test-consumer-key".to_string(),

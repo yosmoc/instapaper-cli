@@ -85,17 +85,16 @@ pub struct ApiError {
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
-#[allow(clippy::enum_variant_names)]
 enum ListItem {
     #[serde(rename = "user")]
-    UserItem {
+    User {
         user_id: i64,
         username: String,
         #[serde(default)]
         subscription_is_active: Option<String>,
     },
     #[serde(rename = "bookmark")]
-    BookmarkItem {
+    Bookmark {
         bookmark_id: i64,
         url: String,
         #[serde(default)]
@@ -120,7 +119,7 @@ enum ListItem {
         progress_timestamp: Option<i64>,
     },
     #[serde(rename = "highlight")]
-    HighlightItem {
+    Highlight {
         highlight_id: i64,
         bookmark_id: i64,
         text: String,
@@ -128,13 +127,19 @@ enum ListItem {
         time: i64,
     },
     #[serde(rename = "meta")]
-    MetaItem,
+    Meta,
     #[serde(rename = "error")]
-    ErrorItem { error_code: i64, message: String },
+    Error { error_code: i64, message: String },
     #[serde(other)]
-    UnknownItem,
+    Unknown,
 }
 
+/// Lists bookmarks matching the provided filters.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails, the response is not successful,
+/// or the response cannot be parsed.
 pub async fn list_bookmarks(
     client: &ApiClient,
     limit: Option<i32>,
@@ -160,7 +165,7 @@ pub async fn list_bookmarks(
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     let body = response.text().await?;
@@ -171,7 +176,7 @@ pub async fn list_bookmarks(
     let mut result = BookmarkListResponse::default();
     for item in items {
         match item {
-            ListItem::UserItem {
+            ListItem::User {
                 user_id,
                 username,
                 subscription_is_active,
@@ -183,7 +188,7 @@ pub async fn list_bookmarks(
                     subscription_is_active,
                 });
             }
-            ListItem::BookmarkItem {
+            ListItem::Bookmark {
                 bookmark_id,
                 url,
                 title,
@@ -213,7 +218,7 @@ pub async fn list_bookmarks(
                     progress_timestamp,
                 });
             }
-            ListItem::HighlightItem {
+            ListItem::Highlight {
                 highlight_id,
                 bookmark_id,
                 text,
@@ -229,11 +234,11 @@ pub async fn list_bookmarks(
                     time,
                 });
             }
-            ListItem::ErrorItem {
+            ListItem::Error {
                 error_code,
                 message,
             } => {
-                return Err(format!("API error {}: {}", error_code, message).into());
+                return Err(format!("API error {error_code}: {message}").into());
             }
             _ => {}
         }
@@ -242,6 +247,13 @@ pub async fn list_bookmarks(
     Ok(result)
 }
 
+/// Adds a new bookmark.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails, the response is not successful,
+/// or the response cannot be parsed.
+#[expect(clippy::too_many_arguments)]
 pub async fn add_bookmark(
     client: &ApiClient,
     url: &str,
@@ -263,11 +275,11 @@ pub async fn add_bookmark(
         ("title", title),
         ("description", description),
         ("folder_id", folder_id_str.as_deref()),
-        ("archived", archived_str.as_deref()),
+        ("archived", archived_str),
         ("tags", tags),
         ("content", content),
         ("is_private_from_source", is_private_from_source),
-        ("resolve_final_url", resolve_str.as_deref()),
+        ("resolve_final_url", resolve_str),
     ]
     .into_iter()
     .filter_map(|(k, v)| v.map(|val| (k, val)))
@@ -278,7 +290,7 @@ pub async fn add_bookmark(
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     let body = response.text().await?;
@@ -288,14 +300,23 @@ pub async fn add_bookmark(
             return Ok(serde_json::from_value(item)?);
         }
         if item.get("type").and_then(|v| v.as_str()) == Some("error") {
-            let error: ApiError = serde_json::from_value(item)?;
-            return Err(format!("API error {}: {}", error.error_code, error.message).into());
+            let ApiError {
+                error_code,
+                message,
+                ..
+            } = serde_json::from_value(item)?;
+            return Err(format!("API error {error_code}: {message}").into());
         }
     }
 
     Err("no bookmark found in response".into())
 }
 
+/// Deletes a bookmark permanently.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails or the response is not successful.
 pub async fn delete_bookmark(
     client: &ApiClient,
     bookmark_id: i64,
@@ -310,12 +331,18 @@ pub async fn delete_bookmark(
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     Ok(())
 }
 
+/// Stars a bookmark.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails, the response is not successful,
+/// or no bookmark is found in the response.
 pub async fn star_bookmark(
     client: &ApiClient,
     bookmark_id: i64,
@@ -328,7 +355,7 @@ pub async fn star_bookmark(
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     let body = response.text().await?;
@@ -342,6 +369,12 @@ pub async fn star_bookmark(
     Err("no bookmark found in response".into())
 }
 
+/// Unstars a bookmark.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails, the response is not successful,
+/// or no bookmark is found in the response.
 pub async fn unstar_bookmark(
     client: &ApiClient,
     bookmark_id: i64,
@@ -356,7 +389,7 @@ pub async fn unstar_bookmark(
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     let body = response.text().await?;
@@ -370,6 +403,12 @@ pub async fn unstar_bookmark(
     Err("no bookmark found in response".into())
 }
 
+/// Archives a bookmark.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails, the response is not successful,
+/// or no bookmark is found in the response.
 pub async fn archive_bookmark(
     client: &ApiClient,
     bookmark_id: i64,
@@ -384,7 +423,7 @@ pub async fn archive_bookmark(
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     let body = response.text().await?;
@@ -398,6 +437,12 @@ pub async fn archive_bookmark(
     Err("no bookmark found in response".into())
 }
 
+/// Unarchives a bookmark.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails, the response is not successful,
+/// or no bookmark is found in the response.
 pub async fn unarchive_bookmark(
     client: &ApiClient,
     bookmark_id: i64,
@@ -412,7 +457,7 @@ pub async fn unarchive_bookmark(
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     let body = response.text().await?;
@@ -426,6 +471,12 @@ pub async fn unarchive_bookmark(
     Err("no bookmark found in response".into())
 }
 
+/// Moves a bookmark to a folder.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails, the response is not successful,
+/// or no bookmark is found in the response.
 pub async fn move_bookmark(
     client: &ApiClient,
     bookmark_id: i64,
@@ -443,7 +494,7 @@ pub async fn move_bookmark(
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     let body = response.text().await?;
@@ -457,6 +508,11 @@ pub async fn move_bookmark(
     Err("no bookmark found in response".into())
 }
 
+/// Fetches the processed text HTML for a bookmark.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails or the response is not successful.
 pub async fn get_bookmark_text(
     client: &ApiClient,
     bookmark_id: i64,
@@ -478,13 +534,19 @@ pub async fn get_bookmark_text(
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     let html = response.text().await?;
     Ok(html)
 }
 
+/// Updates reading progress for a bookmark.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails, the response is not successful,
+/// or no bookmark is found in the response.
 pub async fn update_read_progress(
     client: &ApiClient,
     bookmark_id: i64,
@@ -507,7 +569,7 @@ pub async fn update_read_progress(
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     let body = response.text().await?;
@@ -530,7 +592,7 @@ mod tests {
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]
-    async fn test_list_bookmarks_success() {
+    async fn test_list_bookmarks_success() -> Result<(), Box<dyn std::error::Error>> {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("GET"))
@@ -549,7 +611,7 @@ mod tests {
                     "title": "Example page 1",
                     "description": "An example page.",
                     "hash": "abc123",
-                    "time": 1234567890,
+                    "time": 1_234_567_890,
                     "starred": "0",
                     "archive": "0"
                 }
@@ -562,17 +624,16 @@ mod tests {
             "test-consumer-key".to_string(),
             "test-consumer-secret".to_string(),
             Some(test_token()),
-        );
+        )?;
 
-        let result = list_bookmarks(&client, Some(10), None, None, None, None).await;
-        assert!(result.is_ok());
-        let response = result.unwrap();
+        let response = list_bookmarks(&client, Some(10), None, None, None, None).await?;
         assert_eq!(response.bookmarks.len(), 1);
         assert_eq!(response.bookmarks[0].bookmark_id, 1234);
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_add_bookmark_success() {
+    async fn test_add_bookmark_success() -> Result<(), Box<dyn std::error::Error>> {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
@@ -585,7 +646,7 @@ mod tests {
                     "title": "New Page",
                     "description": "A new page.",
                     "hash": "def456",
-                    "time": 1234567891,
+                    "time": 1_234_567_891,
                     "starred": "0",
                     "archive": "0"
                 }
@@ -598,9 +659,9 @@ mod tests {
             "test-consumer-key".to_string(),
             "test-consumer-secret".to_string(),
             Some(test_token()),
-        );
+        )?;
 
-        let result = add_bookmark(
+        let bookmark = add_bookmark(
             &client,
             "http://www.example.com/new.html",
             Some("New Page"),
@@ -612,15 +673,14 @@ mod tests {
             None,
             None,
         )
-        .await;
-        assert!(result.is_ok());
-        let bookmark = result.unwrap();
+        .await?;
         assert_eq!(bookmark.bookmark_id, 1235);
         assert_eq!(bookmark.title, Some("New Page".to_string()));
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_get_bookmark_text_success() {
+    async fn test_get_bookmark_text_success() -> Result<(), Box<dyn std::error::Error>> {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
@@ -637,15 +697,15 @@ mod tests {
             "test-consumer-key".to_string(),
             "test-consumer-secret".to_string(),
             Some(test_token()),
-        );
+        )?;
 
-        let result = get_bookmark_text(&client, 1234, None).await;
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "<html><body>Article text</body></html>");
+        let html = get_bookmark_text(&client, 1234, None).await?;
+        assert_eq!(html, "<html><body>Article text</body></html>");
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_star_bookmark_success() {
+    async fn test_star_bookmark_success() -> Result<(), Box<dyn std::error::Error>> {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
@@ -667,16 +727,15 @@ mod tests {
             "test-consumer-key".to_string(),
             "test-consumer-secret".to_string(),
             Some(test_token()),
-        );
+        )?;
 
-        let result = star_bookmark(&client, 1234).await;
-        assert!(result.is_ok());
-        let bookmark = result.unwrap();
+        let bookmark = star_bookmark(&client, 1234).await?;
         assert_eq!(bookmark.starred, Some("1".to_string()));
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_archive_bookmark_success() {
+    async fn test_archive_bookmark_success() -> Result<(), Box<dyn std::error::Error>> {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
@@ -698,16 +757,15 @@ mod tests {
             "test-consumer-key".to_string(),
             "test-consumer-secret".to_string(),
             Some(test_token()),
-        );
+        )?;
 
-        let result = archive_bookmark(&client, 1234).await;
-        assert!(result.is_ok());
-        let bookmark = result.unwrap();
+        let bookmark = archive_bookmark(&client, 1234).await?;
         assert_eq!(bookmark.archive, Some("1".to_string()));
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_update_read_progress_success() {
+    async fn test_update_read_progress_success() -> Result<(), Box<dyn std::error::Error>> {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
@@ -729,11 +787,10 @@ mod tests {
             "test-consumer-key".to_string(),
             "test-consumer-secret".to_string(),
             Some(test_token()),
-        );
+        )?;
 
-        let result = update_read_progress(&client, 1234, 0.5, 1288584076).await;
-        assert!(result.is_ok());
-        let bookmark = result.unwrap();
+        let bookmark = update_read_progress(&client, 1234, 0.5, 1_288_584_076).await?;
         assert_eq!(bookmark.bookmark_id, 1234);
+        Ok(())
     }
 }

@@ -90,6 +90,7 @@ instapaper create-highlight 12345 "Important text"
 cargo build
 cargo test
 cargo fmt --all
+cargo clippy --all-targets --all-features
 ```
 
 ## API Documentation

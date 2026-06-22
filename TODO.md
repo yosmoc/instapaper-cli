@@ -7,9 +7,10 @@
 - [x] Add dependencies: clap, reqwest, serde, serde_json, tokio, thiserror, oauth1-request
 - [x] Configure INSTAPAPER_OAUTH_CONSUMER_KEY, INSTAPAPER_OAUTH_CONSUMER_SECRET environment variables
 - [x] Configure INSTAPAPER_USERNAME, INSTAPAPER_PASSWORD for xAuth
-- [x] Set up prek pre-commit hooks (secretlint, cargo-fmt, cargo-test, pinact, oxfmt)
+- [x] Set up pre-commit hooks (secretlint, cargo-fmt, cargo-clippy, cargo-test, pinact, oxfmt)
 - [x] Set up GitHub Actions CI/CD (test, release, secretlint, oxfmt)
 - [x] Create AGENTS.md, skills/instapaper-cli/SKILL.md, README.md
+- [x] Configure Clippy lints (`pedantic`, `unwrap_used`, `expect_used`, `panic`, `allow_attributes`, `dbg_macro`, `todo`, `print_stdout`, `print_stderr`)
 - [x] Add crates.io installation instructions to README.md and SKILL.md
 
 ## Commands Implemented (17 total)
@@ -61,7 +62,7 @@
 
 ## Current Status
 
-All 17 commands implemented. 19 tests passing. `auth`, `verify-credentials`, `list-bookmarks`, and `list-folders` verified against live API.
+All 17 commands implemented. 19 tests passing. Clippy clean with strict lint rules. `auth`, `verify-credentials`, `list-bookmarks`, and `list-folders` verified against live API.
 
 ## API Notes
 
