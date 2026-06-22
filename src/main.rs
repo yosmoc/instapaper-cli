@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use instapaper_cli::client::ApiClient;
 use instapaper_cli::commands::{account, auth, bookmarks, folders, highlights};
+use std::io::{self, Write};
 
 const DEFAULT_BASE_URL: &str = "https://www.instapaper.com";
 
@@ -158,6 +159,13 @@ enum Commands {
     },
 }
 
+fn print_output(output: &str) -> io::Result<()> {
+    let mut stdout = io::stdout().lock();
+    stdout.write_all(output.as_bytes())?;
+    stdout.write_all(b"\n")
+}
+
+#[expect(clippy::too_many_lines)]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
@@ -171,13 +179,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 None => rpassword::prompt_password("Instapaper password: ")
                     .map_err(|e| format!("failed to read password: {e}"))?,
             };
-            let _ = auth::xauth_login(&client, &username, &password).await?;
-            println!("Authentication successful!");
-            println!("OAuth tokens saved to config directory.");
+            auth::xauth_login(&client, &username, &password).await?;
+            print_output("Authentication successful!")?;
+            print_output("OAuth tokens saved to config directory.")?;
         }
         Commands::VerifyCredentials => {
             let user = account::verify_credentials(&client).await?;
-            println!("{}", serde_json::to_string_pretty(&user)?);
+            print_output(&serde_json::to_string_pretty(&user)?)?;
         }
         Commands::ListBookmarks {
             limit,
@@ -195,7 +203,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 highlights.as_deref(),
             )
             .await?;
-            println!("{}", serde_json::to_string_pretty(&result)?);
+            print_output(&serde_json::to_string_pretty(&result)?)?;
         }
         Commands::AddBookmark {
             url,
@@ -222,34 +230,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Some(resolve_final_url),
             )
             .await?;
-            println!("{}", serde_json::to_string_pretty(&bookmark)?);
+            print_output(&serde_json::to_string_pretty(&bookmark)?)?;
         }
         Commands::DeleteBookmark { bookmark_id } => {
             bookmarks::delete_bookmark(&client, bookmark_id).await?;
-            println!("Bookmark {} deleted.", bookmark_id);
+            print_output(&format!("Bookmark {bookmark_id} deleted."))?;
         }
         Commands::StarBookmark { bookmark_id } => {
             let bookmark = bookmarks::star_bookmark(&client, bookmark_id).await?;
-            println!("{}", serde_json::to_string_pretty(&bookmark)?);
+            print_output(&serde_json::to_string_pretty(&bookmark)?)?;
         }
         Commands::UnstarBookmark { bookmark_id } => {
             let bookmark = bookmarks::unstar_bookmark(&client, bookmark_id).await?;
-            println!("{}", serde_json::to_string_pretty(&bookmark)?);
+            print_output(&serde_json::to_string_pretty(&bookmark)?)?;
         }
         Commands::ArchiveBookmark { bookmark_id } => {
             let bookmark = bookmarks::archive_bookmark(&client, bookmark_id).await?;
-            println!("{}", serde_json::to_string_pretty(&bookmark)?);
+            print_output(&serde_json::to_string_pretty(&bookmark)?)?;
         }
         Commands::UnarchiveBookmark { bookmark_id } => {
             let bookmark = bookmarks::unarchive_bookmark(&client, bookmark_id).await?;
-            println!("{}", serde_json::to_string_pretty(&bookmark)?);
+            print_output(&serde_json::to_string_pretty(&bookmark)?)?;
         }
         Commands::MoveBookmark {
             bookmark_id,
             folder_id,
         } => {
             let bookmark = bookmarks::move_bookmark(&client, bookmark_id, folder_id).await?;
-            println!("{}", serde_json::to_string_pretty(&bookmark)?);
+            print_output(&serde_json::to_string_pretty(&bookmark)?)?;
         }
         Commands::GetBookmarkText {
             bookmark_id,
@@ -258,42 +266,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let html =
                 bookmarks::get_bookmark_text(&client, bookmark_id, instaparser_api_key.as_deref())
                     .await?;
-            println!("{}", html);
+            print_output(&html)?;
         }
         Commands::UpdateReadProgress {
             bookmark_id,
             progress,
             progress_timestamp,
         } => {
-            let timestamp = progress_timestamp.unwrap_or_else(|| {
-                std::time::SystemTime::now()
+            let timestamp = if let Some(ts) = progress_timestamp {
+                ts
+            } else {
+                let secs = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs() as i64
-            });
+                    .map_err(|e| format!("system clock is before Unix epoch: {e}"))?
+                    .as_secs();
+                i64::try_from(secs).map_err(|e| format!("timestamp out of range: {e}"))?
+            };
             let bookmark =
                 bookmarks::update_read_progress(&client, bookmark_id, progress, timestamp).await?;
-            println!("{}", serde_json::to_string_pretty(&bookmark)?);
+            print_output(&serde_json::to_string_pretty(&bookmark)?)?;
         }
         Commands::ListFolders => {
             let folder_list = folders::list_folders(&client).await?;
-            println!("{}", serde_json::to_string_pretty(&folder_list)?);
+            print_output(&serde_json::to_string_pretty(&folder_list)?)?;
         }
         Commands::AddFolder { title } => {
             let folder = folders::add_folder(&client, &title).await?;
-            println!("{}", serde_json::to_string_pretty(&folder)?);
+            print_output(&serde_json::to_string_pretty(&folder)?)?;
         }
         Commands::DeleteFolder { folder_id } => {
             folders::delete_folder(&client, folder_id).await?;
-            println!("Folder {} deleted.", folder_id);
+            print_output(&format!("Folder {folder_id} deleted."))?;
         }
         Commands::SetFolderOrder { order } => {
             let folder_list = folders::set_folder_order(&client, &order).await?;
-            println!("{}", serde_json::to_string_pretty(&folder_list)?);
+            print_output(&serde_json::to_string_pretty(&folder_list)?)?;
         }
         Commands::ListHighlights { bookmark_id } => {
             let highlight_list = highlights::list_highlights(&client, bookmark_id).await?;
-            println!("{}", serde_json::to_string_pretty(&highlight_list)?);
+            print_output(&serde_json::to_string_pretty(&highlight_list)?)?;
         }
         Commands::CreateHighlight {
             bookmark_id,
@@ -302,11 +313,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } => {
             let highlight =
                 highlights::create_highlight(&client, bookmark_id, &text, position).await?;
-            println!("{}", serde_json::to_string_pretty(&highlight)?);
+            print_output(&serde_json::to_string_pretty(&highlight)?)?;
         }
         Commands::DeleteHighlight { highlight_id } => {
             highlights::delete_highlight(&client, highlight_id).await?;
-            println!("Highlight {} deleted.", highlight_id);
+            print_output(&format!("Highlight {highlight_id} deleted."))?;
         }
     }
 

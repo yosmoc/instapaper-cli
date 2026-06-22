@@ -17,6 +17,9 @@ pub enum ApiError {
     #[error("HTTP request failed: {0}")]
     HttpError(#[from] reqwest::Error),
 
+    #[error("failed to build HTTP client: {0}")]
+    HttpClientBuildError(reqwest::Error),
+
     #[error("OAuth error: {0}")]
     OAuthError(String),
 
@@ -39,27 +42,38 @@ pub struct ApiClient {
 }
 
 impl ApiClient {
+    /// Creates a new API client.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying HTTP client cannot be built.
     pub fn new(
         base_url: String,
         consumer_key: String,
         consumer_secret: String,
         token: Option<Token<String, String>>,
-    ) -> Self {
+    ) -> Result<Self, ApiError> {
         let client = Client::builder()
             .connect_timeout(CONNECT_TIMEOUT)
             .timeout(REQUEST_TIMEOUT)
             .build()
-            .expect("failed to build HTTP client");
+            .map_err(ApiError::HttpClientBuildError)?;
 
-        Self {
+        Ok(Self {
             client,
             base_url,
             consumer_key,
             consumer_secret,
             token,
-        }
+        })
     }
 
+    /// Creates a client from environment variables and saved tokens.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if required environment variables are missing, the
+    /// token file cannot be read, or the HTTP client cannot be built.
     pub fn from_env(base_url: String) -> Result<Self, ApiError> {
         let consumer_key = std::env::var("INSTAPAPER_OAUTH_CONSUMER_KEY")
             .map_err(|_| ApiError::MissingConsumerKey)?;
@@ -68,16 +82,21 @@ impl ApiClient {
 
         let token = Self::load_token_credentials(&consumer_key, &consumer_secret)?;
 
-        Ok(Self::new(base_url, consumer_key, consumer_secret, token))
+        Self::new(base_url, consumer_key, consumer_secret, token)
     }
 
+    /// Creates a client from explicit OAuth credentials.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying HTTP client cannot be built.
     pub fn from_credentials(
         base_url: String,
         consumer_key: String,
         consumer_secret: String,
         access_token: String,
         access_token_secret: String,
-    ) -> Self {
+    ) -> Result<Self, ApiError> {
         let token = Some(Token::from_parts(
             consumer_key.clone(),
             consumer_secret.clone(),
@@ -131,6 +150,12 @@ impl ApiClient {
         )))
     }
 
+    /// Saves OAuth token credentials to the config file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the config directory or token file cannot be
+    /// created or written, or if permissions cannot be restricted.
     pub fn save_token_credentials(&self, token: &str, token_secret: &str) -> Result<(), ApiError> {
         let dir = Self::config_dir()?;
         std::fs::create_dir_all(&dir).map_err(|e| {
@@ -171,10 +196,17 @@ impl ApiClient {
         Ok(())
     }
 
+    #[must_use]
     pub fn token(&self) -> Option<&Token<String, String>> {
         self.token.as_ref()
     }
 
+    /// Performs xAuth login and returns the access token pair.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request fails, the response is not successful,
+    /// or the expected OAuth fields are missing.
     pub async fn xauth_login(
         &self,
         username: &str,
@@ -235,6 +267,12 @@ impl ApiClient {
         None
     }
 
+    /// Sends a signed POST request to the given API path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no OAuth token is available, the request fails, or
+    /// the response cannot be received.
     pub async fn signed_post(
         &self,
         path: &str,
@@ -248,7 +286,7 @@ impl ApiClient {
 
         let param_list: Vec<(&str, &dyn std::fmt::Display)> = params
             .iter()
-            .map(|(k, v)| (*k, &*v as &dyn std::fmt::Display))
+            .map(|(k, v)| (*k, v as &dyn std::fmt::Display))
             .collect();
         let request = ParameterList::new(param_list);
 
@@ -265,6 +303,12 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Sends a signed GET request to the given API path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no OAuth token is available, the request fails, or
+    /// the response cannot be received.
     pub async fn signed_get(
         &self,
         path: &str,
@@ -278,7 +322,7 @@ impl ApiClient {
 
         let param_list: Vec<(&str, &dyn std::fmt::Display)> = params
             .iter()
-            .map(|(k, v)| (*k, &*v as &dyn std::fmt::Display))
+            .map(|(k, v)| (*k, v as &dyn std::fmt::Display))
             .collect();
         let request = ParameterList::new(param_list);
 
@@ -295,10 +339,12 @@ impl ApiClient {
         Ok(response)
     }
 
+    #[must_use]
     pub fn client(&self) -> &Client {
         &self.client
     }
 
+    #[must_use]
     pub fn base_url(&self) -> &str {
         &self.base_url
     }
@@ -336,12 +382,13 @@ mod tests {
     }
 
     #[test]
-    fn test_api_client_new_builds_successfully() {
+    fn test_api_client_new_builds_successfully() -> Result<(), ApiError> {
         let _client = ApiClient::new(
             "https://www.instapaper.com".to_string(),
             "key".to_string(),
             "secret".to_string(),
             None,
-        );
+        )?;
+        Ok(())
     }
 }

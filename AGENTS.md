@@ -3,9 +3,9 @@
 ## Development Workflow
 
 - **TDD first**: Write tests, then implement. Use `wiremock` for HTTP mocking.
-- **After implementing a new function**: `cargo fmt --all` → `cargo test` →
+- **After implementing a new function**: `cargo fmt --all` → `cargo clippy --all-targets --all-features` → `cargo test` →
   update `TODO.md`, `README.md`, and `skills/instapaper-cli/SKILL.md`.
-- **Pre-commit hooks**: secretlint, cargo-fmt, cargo-test, pinact, oxfmt.
+- **Pre-commit hooks**: secretlint, cargo-fmt, cargo-clippy, cargo-test, pinact, oxfmt.
   All must pass.
 
 ## Key Commands
@@ -15,6 +15,8 @@ cargo test              # Run all tests
 cargo test <pattern>    # Run matching tests
 cargo fmt --all         # Format code
 cargo fmt --all -- --check  # Check formatting (CI)
+cargo clippy --all-targets --all-features         # Run clippy
+cargo clippy --all-targets --all-features -- -D warnings  # Fail on warnings (CI)
 ```
 
 ## Project Structure

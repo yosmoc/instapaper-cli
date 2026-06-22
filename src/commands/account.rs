@@ -17,6 +17,12 @@ pub struct ApiResponse {
     pub data: serde_json::Value,
 }
 
+/// Verifies stored credentials and returns the current user.
+///
+/// # Errors
+///
+/// Returns an error if the API request fails, the response is not successful,
+/// or no user object is present in the response.
 pub async fn verify_credentials(client: &ApiClient) -> Result<User, Box<dyn std::error::Error>> {
     let response = client
         .signed_post("/api/1/account/verify_credentials", &[])
@@ -25,7 +31,7 @@ pub async fn verify_credentials(client: &ApiClient) -> Result<User, Box<dyn std:
     if !response.status().is_success() {
         let status = response.status().as_u16();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("API error: {} - {}", status, body).into());
+        return Err(format!("API error: {status} - {body}").into());
     }
 
     let users: Vec<User> = response.json().await?;
@@ -44,7 +50,7 @@ mod tests {
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]
-    async fn test_verify_credentials_success() {
+    async fn test_verify_credentials_success() -> Result<(), Box<dyn std::error::Error>> {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
@@ -64,17 +70,16 @@ mod tests {
             "test-consumer-key".to_string(),
             "test-consumer-secret".to_string(),
             Some(test_token()),
-        );
+        )?;
 
-        let result = verify_credentials(&client).await;
-        assert!(result.is_ok());
-        let user = result.unwrap();
+        let user = verify_credentials(&client).await?;
         assert_eq!(user.user_id, 54321);
         assert_eq!(user.username, "TestUser");
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_verify_credentials_unauthorized() {
+    async fn test_verify_credentials_unauthorized() -> Result<(), Box<dyn std::error::Error>> {
         let mock_server = MockServer::start().await;
 
         Mock::given(method("POST"))
@@ -94,9 +99,10 @@ mod tests {
             "test-consumer-key".to_string(),
             "test-consumer-secret".to_string(),
             Some(test_token()),
-        );
+        )?;
 
         let result = verify_credentials(&client).await;
         assert!(result.is_err());
+        Ok(())
     }
 }
