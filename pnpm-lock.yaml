@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@secretlint/secretlint-rule-preset-recommend':
-        specifier: 13.0.6
-        version: 13.0.6
+        specifier: 13.0.7
+        version: 13.0.7
       oxfmt:
         specifier: 0.71.0
         version: 0.71.0
@@ -182,8 +182,8 @@ packages:
   '@secretlint/resolver@13.0.6':
     resolution: {integrity: sha512-HHTfCjEZvChOFebJ/JBpsqCM/q8hmS6qZq80xbQdVEsdjMmTcTX8E/uvYkOuyozuLCWePpJCnZ6nIxceSvYoog==}
 
-  '@secretlint/secretlint-rule-preset-recommend@13.0.6':
-    resolution: {integrity: sha512-5OdYoPKs7LznSY/mFgpJlSY8ayF+clq0gdfOE0ERVfvUifmIDz0yG/d1ij3wZmfpyOw33tk12zUcDZqrXHFodA==}
+  '@secretlint/secretlint-rule-preset-recommend@13.0.7':
+    resolution: {integrity: sha512-hfdYra+ZB6RmviEApxeL/YCx4ovBtpj0d9c+uhlCZaCikObjb8Sb8yqBN6g8/9tt7qD7LXGE3k9RtVvGK1fNVw==}
     engines: {node: '>=22.0.0'}
 
   '@secretlint/source-creator@13.0.6':
@@ -610,7 +610,7 @@ snapshots:
 
   '@secretlint/resolver@13.0.6': {}
 
-  '@secretlint/secretlint-rule-preset-recommend@13.0.6': {}
+  '@secretlint/secretlint-rule-preset-recommend@13.0.7': {}
 
   '@secretlint/source-creator@13.0.6':
     dependencies:

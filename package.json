@@ -4,7 +4,7 @@
     "fmt:check": "oxfmt --check"
   },
   "devDependencies": {
-    "@secretlint/secretlint-rule-preset-recommend": "13.0.6",
+    "@secretlint/secretlint-rule-preset-recommend": "13.0.7",
     "oxfmt": "0.71.0",
     "secretlint": "13.0.6"
   },
