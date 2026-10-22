@@ -5,7 +5,7 @@
   },
   "devDependencies": {
     "@secretlint/secretlint-rule-preset-recommend": "13.0.7",
-    "oxfmt": "0.72.0",
+    "oxfmt": "0.74.0",
     "secretlint": "13.0.7"
   },
   "packageManager": "pnpm@10.33.2"
